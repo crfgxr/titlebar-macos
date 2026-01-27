@@ -1,6 +1,9 @@
 # TitleBar macOS App
 This repository contains the TitleBar macOS app written in Swift.
 
+## Repository
+- GitHub: https://github.com/crfgxr/titlebar-macos
+
 ## Project Structure
 - `Sources/` Swift source files (entry: `Sources/main.swift`)
 - `Resources/` app resources and assets
