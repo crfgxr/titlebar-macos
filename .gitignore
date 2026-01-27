@@ -1,0 +1,17 @@
+# Build outputs
+build/
+*.app
+*.pkg
+*.zip
+*.dSYM
+*.dSYM.zip
+*.xcarchive
+to-share/
+
+# Signing and certificates
+certs/
+*.provisionprofile
+*.mobileprovision
+
+# macOS
+.DS_Store

@@ -1,0 +1,43 @@
+default_platform(:mac)
+
+platform :mac do
+  desc "Create the App Store Connect app record"
+  lane :create_app do
+    produce(
+      app_identifier: "com.cagirtas.titlebar",
+      app_name: "TitleBar",
+      sku: "titlebar-macos",
+      platform: "osx",
+      language: "en-US"
+    )
+  end
+
+  desc "Build and upload to App Store Connect"
+  lane :release do
+    sigh(
+      app_identifier: "com.cagirtas.titlebar",
+      platform: "macos",
+      provisioning_name: "TitleBar Mac App Store",
+      force: true
+    )
+
+    build_mac_app(
+      project: "TitleBar.xcodeproj",
+      scheme: "TitleBar",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "FDH6MWPL9X",
+        provisioningProfiles: {
+          "com.cagirtas.titlebar" => "TitleBar Mac App Store"
+        }
+      }
+    )
+
+    upload_to_app_store(
+      skip_metadata: true,
+      skip_screenshots: true
+    )
+  end
+end

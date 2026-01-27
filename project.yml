@@ -1,0 +1,23 @@
+name: TitleBar
+options:
+  deploymentTarget:
+    macOS: "12.0"
+targets:
+  TitleBar:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+      - path: Resources/TitleBar.icns
+        buildPhase: resources
+    info:
+      path: Info.plist
+    entitlements:
+      path: TitleBar.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cagirtas.titlebar
+        MARKETING_VERSION: 0.1
+        CURRENT_PROJECT_VERSION: 1
+        DEVELOPMENT_TEAM: FDH6MWPL9X
+        CODE_SIGN_STYLE: Automatic
