@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3DF00972816C78A9AFB7DF39 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C55B14AD2270C0C64BF807 /* main.swift */; };
+		3DF00972816C78A9AFB7DF39 /* TitleBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42C55B14AD2270C0C64BF807 /* TitleBarApp.swift */; };
 		4082F05281881DC6CF4BBBF5 /* TitleBar.icns in Resources */ = {isa = PBXBuildFile; fileRef = F15267901764B651D4E0AEEE /* TitleBar.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0D3C210668F3A38993F81A3E /* TitleBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TitleBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		42C55B14AD2270C0C64BF807 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		42C55B14AD2270C0C64BF807 /* TitleBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleBarApp.swift; sourceTree = "<group>"; };
 		F15267901764B651D4E0AEEE /* TitleBar.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = TitleBar.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -46,7 +46,7 @@
 		F8D07292F3F06F7A1671B938 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				42C55B14AD2270C0C64BF807 /* main.swift */,
+				42C55B14AD2270C0C64BF807 /* TitleBarApp.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -122,7 +122,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DF00972816C78A9AFB7DF39 /* main.swift in Sources */,
+				3DF00972816C78A9AFB7DF39 /* TitleBarApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -136,7 +136,7 @@
 				CODE_SIGN_ENTITLEMENTS = TitleBar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = FDH6MWPL9X;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -200,7 +200,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -257,7 +257,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -275,7 +275,7 @@
 				CODE_SIGN_ENTITLEMENTS = TitleBar.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = FDH6MWPL9X;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
