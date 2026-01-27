@@ -2,25 +2,56 @@ import AppKit
 import ApplicationServices
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem!
+    // Keep strong reference to prevent deallocation
+    private var statusItem: NSStatusItem?
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSLog("[TitleBar] App launched, creating status item...")
+        NSLog("[TitleBar] App launched")
         
-        // Use fixed length to guarantee visibility
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.isVisible = true
+        // Delay status item creation to ensure app is fully initialized
+        DispatchQueue.main.async { [weak self] in
+            self?.setupStatusItem()
+        }
+    }
+    
+    private func setupStatusItem() {
+        NSLog("[TitleBar] Setting up status item...")
         
-        configureStatusItemAppearance()
-        statusItem.menu = makeMenu()
+        // Create status item with variable length to show text
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.isVisible = true
         
-        NSLog("[TitleBar] Status item created, button exists: \(statusItem.button != nil)")
-
-        requestAccessibilityIfNeeded()
-        startMonitoring()
+        // Configure button
+        if let button = item.button {
+            button.title = "TitleBar"
+            button.toolTip = "TitleBar - Shows current window title"
+            
+            // Add icon
+            if let image = NSImage(systemSymbolName: "text.alignleft", accessibilityDescription: "TitleBar") {
+                image.isTemplate = true
+                button.image = image
+                button.imagePosition = .imageLeading
+            }
+            
+            NSLog("[TitleBar] Button configured: title=\(button.title)")
+        } else {
+            NSLog("[TitleBar] ERROR: Button is nil!")
+        }
         
-        NSLog("[TitleBar] Monitoring started")
+        // Create menu
+        item.menu = makeMenu()
+        
+        // Store reference AFTER configuration
+        self.statusItem = item
+        
+        NSLog("[TitleBar] Status item stored, starting monitoring...")
+        
+        // Start monitoring after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.requestAccessibilityIfNeeded()
+            self?.startMonitoring()
+        }
     }
 
     private func makeMenu() -> NSMenu {
@@ -89,7 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureStatusItemAppearance() {
-        guard let button = statusItem.button else {
+        guard let item = statusItem, let button = item.button else {
             NSLog("[TitleBar] ERROR: statusItem.button is nil!")
             return
         }
@@ -101,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let image = NSImage(systemSymbolName: "textformat", accessibilityDescription: "TitleBar") {
             image.isTemplate = true
             button.image = image
-            button.imagePosition = .imageLeading
+            button.imagePosition = NSControl.ImagePosition.imageLeading
             NSLog("[TitleBar] Icon set successfully")
         } else {
             NSLog("[TitleBar] WARNING: Could not load SF Symbol, using text only")
@@ -204,7 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setStatusTitle(_ title: String) {
         let sanitized = title.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\t", with: " ")
         let limited = String(sanitized.prefix(10))
-        statusItem.button?.title = limited
+        statusItem?.button?.title = limited
         NSLog("[TitleBar] Title updated to: \(limited)")
     }
 }
