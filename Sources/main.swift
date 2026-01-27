@@ -6,12 +6,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSLog("[TitleBar] App launched, creating status item...")
+        
+        // Use fixed length to guarantee visibility
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.isVisible = true
+        
         configureStatusItemAppearance()
         statusItem.menu = makeMenu()
+        
+        NSLog("[TitleBar] Status item created, button exists: \(statusItem.button != nil)")
 
         requestAccessibilityIfNeeded()
         startMonitoring()
+        
+        NSLog("[TitleBar] Monitoring started")
     }
 
     private func makeMenu() -> NSMenu {
@@ -81,16 +90,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItemAppearance() {
         guard let button = statusItem.button else {
+            NSLog("[TitleBar] ERROR: statusItem.button is nil!")
             return
         }
 
-        button.title = "Loading"
-
+        // Set a visible title first
+        button.title = "TitleBar"
+        
+        // Try to add SF Symbol icon
         if let image = NSImage(systemSymbolName: "textformat", accessibilityDescription: "TitleBar") {
             image.isTemplate = true
             button.image = image
             button.imagePosition = .imageLeading
+            NSLog("[TitleBar] Icon set successfully")
+        } else {
+            NSLog("[TitleBar] WARNING: Could not load SF Symbol, using text only")
         }
+        
+        // Force the button to display
+        button.isEnabled = true
+        button.needsDisplay = true
+        
+        NSLog("[TitleBar] Button configured with title: \(button.title)")
     }
 
     private func startMonitoring() {
@@ -184,6 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let sanitized = title.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\t", with: " ")
         let limited = String(sanitized.prefix(10))
         statusItem.button?.title = limited
+        NSLog("[TitleBar] Title updated to: \(limited)")
     }
 }
 
@@ -191,4 +213,6 @@ let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
+
+NSLog("[TitleBar] Starting app run loop...")
 app.run()
