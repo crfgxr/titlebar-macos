@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "Loading"
+        configureStatusItemAppearance()
         statusItem.menu = makeMenu()
 
         requestAccessibilityIfNeeded()
@@ -16,10 +16,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeMenu() -> NSMenu {
         let menu = NSMenu()
+        let settingsItem = NSMenuItem(
+            title: "Open Accessibility Settings",
+            action: #selector(openAccessibilitySettings),
+            keyEquivalent: ""
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         return menu
+    }
+
+    @objc private func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func quitApp() {
@@ -31,8 +46,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestAccessibilityIfNeeded() {
+        if AXIsProcessTrusted() {
+            return
+        }
+
+        NSApp.activate(ignoringOtherApps: true)
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        if !trusted {
+            showAccessibilityOnboardingIfNeeded()
+        }
+    }
+
+    private func showAccessibilityOnboardingIfNeeded() {
+        let key = "AccessibilityOnboardingShown"
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: key) {
+            return
+        }
+
+        defaults.set(true, forKey: key)
+
+        let alert = NSAlert()
+        alert.messageText = "Enable Accessibility Access"
+        alert.informativeText = "TitleBar needs Accessibility access to read window titles. Click Open Settings, enable TitleBar, then relaunch."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Later")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            openAccessibilitySettings()
+        }
+    }
+
+    private func configureStatusItemAppearance() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        button.title = "Loading"
+
+        if let image = NSImage(systemSymbolName: "textformat", accessibilityDescription: "TitleBar") {
+            image.isTemplate = true
+            button.image = image
+            button.imagePosition = .imageLeading
+        }
     }
 
     private func startMonitoring() {
