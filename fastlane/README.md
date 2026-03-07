@@ -15,21 +15,13 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Mac
 
-### mac create_app
+### mac direct
 
 ```sh
-[bundle exec] fastlane mac create_app
+[bundle exec] fastlane mac direct
 ```
 
-Create the App Store Connect app record
-
-### mac release
-
-```sh
-[bundle exec] fastlane mac release
-```
-
-Build and upload to App Store Connect
+Build, sign, notarize and package for direct distribution
 
 ----
 

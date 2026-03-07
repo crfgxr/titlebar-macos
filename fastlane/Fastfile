@@ -1,43 +1,68 @@
+require "json"
+
 default_platform(:mac)
 
 platform :mac do
-  desc "Create the App Store Connect app record"
-  lane :create_app do
-    produce(
-      app_identifier: "com.cagirtas.titlebar",
-      app_name: "TitleBar",
-      sku: "titlebar-macos",
-      platform: "osx",
-      language: "en-US"
-    )
-  end
-
-  desc "Build and upload to App Store Connect"
-  lane :release do
-    sigh(
-      app_identifier: "com.cagirtas.titlebar",
-      platform: "macos",
-      provisioning_name: "TitleBar Mac App Store",
-      force: true
-    )
+  desc "Build, sign, notarize and package for direct distribution"
+  lane :direct do
+    root_dir = File.expand_path("..", __dir__)
+    build_dir = File.join(root_dir, "build")
+    app_path = File.join(build_dir, "TitleBar.app")
+    zip_path = File.join(build_dir, "TitleBar.zip")
 
     build_mac_app(
       project: "TitleBar.xcodeproj",
       scheme: "TitleBar",
       configuration: "Release",
-      export_method: "app-store",
+      export_method: "developer-id",
+      output_directory: build_dir,
+      export_team_id: "FDH6MWPL9X",
       export_options: {
-        signingStyle: "manual",
-        teamID: "FDH6MWPL9X",
-        provisioningProfiles: {
-          "com.cagirtas.titlebar" => "TitleBar Mac App Store"
-        }
-      }
+        signingStyle: "automatic",
+        teamID: "FDH6MWPL9X"
+      },
+      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=FDH6MWPL9X CODE_SIGN_IDENTITY='Developer ID Application'"
     )
 
-    upload_to_app_store(
-      skip_metadata: true,
-      skip_screenshots: true
+    # Zip the app for notarization submission
+    zip(
+      path: app_path,
+      output_path: zip_path
     )
+
+    # Notarize using stored keychain credentials
+    UI.message("Submitting app for notarization...")
+    notary_output = sh("xcrun notarytool submit '#{zip_path}' --keychain-profile TitleBarNotarization --wait --output-format json")
+    notary_result = JSON.parse(notary_output)
+    notary_status = notary_result["status"]
+    notary_id = notary_result["id"]
+    notary_summary = notary_result["statusSummary"]
+
+    unless notary_status == "Accepted"
+      begin
+        notary_log_output = sh("xcrun notarytool log '#{notary_id}' --keychain-profile TitleBarNotarization --output-format json")
+        notary_log = JSON.parse(notary_log_output)
+        notary_summary = notary_log["statusSummary"] || notary_summary
+      rescue StandardError
+        # Keep fallback summary from submit output if log retrieval fails.
+      end
+
+      UI.user_error!("Notarization failed (#{notary_status}) for submission #{notary_id}: #{notary_summary}")
+    end
+
+    # Staple the notarization ticket to the app (not the zip)
+    UI.message("Stapling notarization ticket...")
+    sh("xcrun stapler staple '#{app_path}'")
+    sh("xcrun stapler validate '#{app_path}'")
+    sh("spctl -a -vv --type execute '#{app_path}'")
+
+    # Re-zip the stapled app for final distribution
+    sh("rm -f '#{zip_path}'")
+    zip(
+      path: app_path,
+      output_path: zip_path
+    )
+
+    UI.success("Ready for distribution: #{zip_path}")
   end
 end
