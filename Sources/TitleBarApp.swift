@@ -272,7 +272,8 @@ final class TitleManager: ObservableObject {
         let sanitized = text
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\t", with: " ")
-        return String(sanitized.prefix(10))
+        let beforeDash = sanitized.components(separatedBy: " - ").first ?? sanitized
+        return String(beforeDash.prefix(20))
     }
 
     deinit {
