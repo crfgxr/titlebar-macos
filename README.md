@@ -1,34 +1,37 @@
 # TitleBar macOS App
 
-TitleBar is a macOS app written in Swift.
+A macOS menu bar app that shows the frontmost window's title. Built with SwiftUI MenuBarExtra.
+
+## Features
+- Displays the current window title in the menu bar
+- Lists all open windows grouped by app
+- Click any window to focus it
+- Special handling for browsers (shows page title, not app name)
 
 ## Requirements
 - macOS with Xcode installed
+- Accessibility permission (prompted on first launch)
 
-## Getting Started
-1. Open `TitleBar.xcodeproj` in Xcode.
-2. Select the app target and run.
-
-## Build Script
-Run the local build script from the project root:
+## Install
+Build and install to `/Applications`:
 
 ```bash
-./build.sh
+./install.sh
 ```
 
 ## Fastlane
-Fastlane automation lives in `fastlane/`.
+Build, sign, and package for distribution:
 
 ```bash
-fastlane mac create_app
-fastlane mac release
+fastlane mac direct
 ```
 
 ## Project Structure
-- `Sources/` Swift source files (entry: `Sources/main.swift`)
-- `Resources/` app resources and assets
-- `TitleBar.xcodeproj` Xcode project
-- `Info.plist`, `TitleBar.entitlements` app metadata and entitlements
-- `project.yml` project configuration
-- `fastlane/` release automation
-- `build.sh` build script
+- `Sources/` — Swift source files (entry: `TitleBarApp.swift`)
+- `Resources/` — App resources and assets
+- `assets/` — Source assets (app icon PNG)
+- `generate_icon.py` — Icon generation script (Python/Pillow)
+- `TitleBar.xcodeproj` — Xcode project
+- `Info.plist`, `TitleBar.entitlements` — App metadata and entitlements
+- `install.sh` — Build and install to /Applications
+- `fastlane/` — Release automation

@@ -4,7 +4,7 @@
 - Single Swift file: `Sources/TitleBarApp.swift`
 - SwiftUI MenuBarExtra (Build 5 rewrite)
 - Reads frontmost window title via Accessibility API (polls every 0.5s)
-- Special handling for browsers (Brave, Chrome) — shows window title instead of app name
+- Special handling for browsers (Brave, Chrome) — shows window title (before " - " separator) instead of app name
 - Sandbox disabled (`com.apple.security.app-sandbox` = false) for Accessibility API access
 
 ## Build & Distribution
@@ -27,12 +27,13 @@
 ## Icons
 - App icon source: `assets/TitleBar.png` (1024x1024, alpha channel)
 - Compiled icon: `Resources/TitleBar.icns`
-- Generated via Python/Pillow script — dark squircle with blue-purple gradient title bar
+- Generated via `generate_icon.py` (Python/Pillow) — floating glass title bars on violet gradient
 
 ## Project Structure
 - `Sources/` — Swift source files (entry: `TitleBarApp.swift`)
 - `Resources/` — App resources and assets
 - `assets/` — Source assets (app icon PNG)
+- `generate_icon.py` — Icon generation script (Python/Pillow)
 - `TitleBar.xcodeproj` — Xcode project
 - `Info.plist`, `TitleBar.entitlements` — App metadata and entitlements
 - `install.sh` — Build and install to /Applications
