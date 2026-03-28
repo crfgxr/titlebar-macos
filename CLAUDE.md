@@ -5,7 +5,11 @@
 - SwiftUI MenuBarExtra (Build 5 rewrite)
 - Reads frontmost window title via Accessibility API (polls every 0.5s)
 - Special handling for browsers (Brave, Chrome) — shows window title (before " - " separator) instead of app name
+- **Desktop/Spaces support**: Groups windows by macOS desktop using private CGS APIs (`CGSCopyManagedDisplaySpaces`, `CGSCopySpacesForWindows`) loaded via `dlsym`
+- Cross-space window discovery via `CGWindowListCopyWindowInfo` + title caching (AX titles cached by windowID so they persist when switching spaces)
+- Uses `_AXUIElementGetWindow` (private AX API) to get CGWindowID from AX elements
 - Sandbox disabled (`com.apple.security.app-sandbox` = false) for Accessibility API access
+- **Permission required**: Accessibility (window titles). Screen Recording is optional (improves cross-desktop titles for never-visited spaces)
 
 ## Build & Distribution
 - Distributed via **direct download** (NOT TestFlight/App Store)
