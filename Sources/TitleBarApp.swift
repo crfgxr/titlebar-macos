@@ -136,7 +136,7 @@ struct TitleBarApp: App {
                                 titleManager.focusWindow(window)
                             } label: {
                                 HStack {
-                                    Text(window.title)
+                                    Text(String(window.title.prefix(30)))
                                     Spacer()
                                     Text(window.appName)
                                         .foregroundColor(.secondary)
