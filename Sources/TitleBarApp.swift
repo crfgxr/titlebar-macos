@@ -131,15 +131,12 @@ struct TitleBarApp: App {
             ForEach(titleManager.desktopGroups) { desktop in
                 Section {
                     ForEach(desktop.appGroups) { group in
-                        ForEach(group.windows) { window in
-                            Button {
-                                titleManager.focusWindow(window)
-                            } label: {
-                                HStack {
+                        Section(group.appName) {
+                            ForEach(group.windows) { window in
+                                Button {
+                                    titleManager.focusWindow(window)
+                                } label: {
                                     Text(String(window.title.prefix(30)))
-                                    Spacer()
-                                    Text(window.appName)
-                                        .foregroundColor(.secondary)
                                 }
                             }
                         }
