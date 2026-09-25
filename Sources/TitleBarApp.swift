@@ -8,36 +8,33 @@ func _AXUIElementGetWindow(_ element: AXUIElement, _ windowID: UnsafeMutablePoin
 
 // MARK: - Private CGS APIs for Spaces
 
+private let cgsHandle = dlopen(nil, RTLD_LAZY)
+
+private func cgsSymbol<T>(_ name: String, as type: T.Type) -> T? {
+    guard let sym = dlsym(cgsHandle, name) else { return nil }
+    return unsafeBitCast(sym, to: type)
+}
+
 private let cgsConnection: UInt32 = {
-    typealias CGSMainConnectionIDFunc = @convention(c) () -> UInt32
-    guard let handle = dlopen(nil, RTLD_LAZY),
-          let sym = dlsym(handle, "CGSMainConnectionID") else { return 0 }
-    let fn = unsafeBitCast(sym, to: CGSMainConnectionIDFunc.self)
-    return fn()
+    typealias Func = @convention(c) () -> UInt32
+    return cgsSymbol("CGSMainConnectionID", as: Func.self)?() ?? 0
 }()
 
+private let cgsGetActiveSpaceFn = cgsSymbol("CGSGetActiveSpace", as: (@convention(c) (UInt32) -> UInt64).self)
+private let cgsCopyManagedDisplaySpacesFn = cgsSymbol("CGSCopyManagedDisplaySpaces", as: (@convention(c) (UInt32) -> CFArray?).self)
+private let cgsCopySpacesForWindowsFn = cgsSymbol("CGSCopySpacesForWindows", as: (@convention(c) (UInt32, UInt32, CFArray) -> CFArray?).self)
+
 private func cgsGetActiveSpace() -> UInt64 {
-    typealias Func = @convention(c) (UInt32) -> UInt64
-    guard let handle = dlopen(nil, RTLD_LAZY),
-          let sym = dlsym(handle, "CGSGetActiveSpace") else { return 0 }
-    let fn = unsafeBitCast(sym, to: Func.self)
-    return fn(cgsConnection)
+    cgsGetActiveSpaceFn?(cgsConnection) ?? 0
 }
 
 private func cgsCopyManagedDisplaySpaces() -> [[String: Any]]? {
-    typealias Func = @convention(c) (UInt32) -> CFArray?
-    guard let handle = dlopen(nil, RTLD_LAZY),
-          let sym = dlsym(handle, "CGSCopyManagedDisplaySpaces") else { return nil }
-    let fn = unsafeBitCast(sym, to: Func.self)
-    guard let result = fn(cgsConnection) else { return nil }
+    guard let fn = cgsCopyManagedDisplaySpacesFn, let result = fn(cgsConnection) else { return nil }
     return result as? [[String: Any]]
 }
 
 private func cgsCopySpacesForWindows(_ windowIDs: [UInt32]) -> [UInt64: UInt64] {
-    typealias Func = @convention(c) (UInt32, UInt32, CFArray) -> CFArray?
-    guard let handle = dlopen(nil, RTLD_LAZY),
-          let sym = dlsym(handle, "CGSCopySpacesForWindows") else { return [:] }
-    let fn = unsafeBitCast(sym, to: Func.self)
+    guard let fn = cgsCopySpacesForWindowsFn else { return [:] }
 
     var mapping: [UInt64: UInt64] = [:]
     for wid in windowIDs {
@@ -61,7 +58,7 @@ final class SpaceManager: ObservableObject {
     func update() {
         let activeSpaceID = cgsGetActiveSpace()
         refreshSpaceList()
-        if let index = spaceOrder.firstIndex(of: activeSpaceID) {
+        if let index = spaceOrder.firstIndex(of: activeSpaceID), currentSpaceNumber != index + 1 {
             currentSpaceNumber = index + 1
         }
     }
@@ -87,7 +84,9 @@ final class SpaceManager: ObservableObject {
             }
         }
         spaceOrder = order
-        spaceNames = names
+        if spaceNames != names {
+            spaceNames = names
+        }
     }
 
     func spaceName(for spaceID: UInt64) -> String {
@@ -98,7 +97,7 @@ final class SpaceManager: ObservableObject {
 
 // MARK: - Window Info
 
-struct WindowInfo: Identifiable {
+struct WindowInfo: Identifiable, Equatable {
     var id: String { "\(windowID)-\(title)" }
     let title: String
     let appName: String
@@ -235,7 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @MainActor
 final class TitleManager: ObservableObject {
-    @Published var currentTitle: String = "Loading..."
+    private var currentTitle: String = "Loading..."
     @Published var displayTitle: String = "TitleBar"
     @Published var openWindows: [WindowInfo] = []
     let spaceManager = SpaceManager.shared
@@ -254,7 +253,8 @@ final class TitleManager: ObservableObject {
         }.sorted { $0.spaceName < $1.spaceName }
     }
 
-    private var timer: Timer?
+    private var titleTimer: Timer?
+    private var windowsTimer: Timer?
     private var titleCache: [UInt32: String] = [:]  // windowID -> last known title
 
     init() {
@@ -274,6 +274,7 @@ final class TitleManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.updateTitle()
+            self?.updateWindows()
         }
 
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -285,12 +286,22 @@ final class TitleManager: ObservableObject {
             self?.updateWindows()
         }
 
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        // Title check is a single AX query — cheap enough to poll frequently.
+        titleTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.updateTitle()
+            }
+        }
+        titleTimer?.tolerance = 0.2
+
+        // Full window enumeration queries every app over AX — poll it slowly.
+        // App activation and space changes trigger an immediate refresh.
+        windowsTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            Task { @MainActor in
                 self?.updateWindows()
             }
         }
+        windowsTimer?.tolerance = 1.0
 
         updateTitle()
         updateWindows()
@@ -298,22 +309,19 @@ final class TitleManager: ObservableObject {
 
     private func updateTitle() {
         guard let app = NSWorkspace.shared.frontmostApplication else {
-            currentTitle = "No App"
-            displayTitle = "NoApp"
+            setTitle("No App", display: "NoApp")
             return
         }
 
         let appName = app.localizedName ?? "Unknown"
 
         guard shouldUseWindowTitle(for: app) else {
-            currentTitle = appName
-            displayTitle = truncate(appName)
+            setTitle(appName, display: truncate(appName))
             return
         }
 
         guard AXIsProcessTrusted() else {
-            currentTitle = "\(appName) (No Permission)"
-            displayTitle = "NoPerm"
+            setTitle("\(appName) (No Permission)", display: "NoPerm")
             return
         }
 
@@ -336,19 +344,24 @@ final class TitleManager: ObservableObject {
 
             if titleError == .success, let title = titleValue as? String, !title.isEmpty {
                 let capitalized = capitalizeWords(title)
-                currentTitle = capitalized
-                displayTitle = truncate(capitalized)
+                setTitle(capitalized, display: truncate(capitalized))
                 return
             }
         }
 
-        currentTitle = appName
-        displayTitle = truncate(appName)
+        setTitle(appName, display: truncate(appName))
+    }
+
+    private func setTitle(_ title: String, display: String) {
+        currentTitle = title
+        if displayTitle != display {
+            displayTitle = display
+        }
     }
 
     private func updateWindows() {
         guard AXIsProcessTrusted() else {
-            openWindows = []
+            if !openWindows.isEmpty { openWindows = [] }
             return
         }
 
@@ -403,7 +416,9 @@ final class TitleManager: ObservableObject {
         var seenWindowIDs: Set<UInt32> = []
 
         // First: add all AX windows (current space, reliable titles) and update cache
-        for (pid, titles) in axTitles {
+        for app in apps {
+            let pid = app.processIdentifier
+            guard let titles = axTitles.removeValue(forKey: pid) else { continue }
             let appName = appNames[pid] ?? "Unknown"
             for t in titles {
                 titleCache[t.windowID] = t.title  // cache for when we leave this space
@@ -443,7 +458,9 @@ final class TitleManager: ObservableObject {
         let activeWindowIDs = Set(cgWindows.map { $0.id })
         titleCache = titleCache.filter { activeWindowIDs.contains($0.key) }
 
-        openWindows = windows
+        if openWindows != windows {
+            openWindows = windows
+        }
     }
 
     func focusWindow(_ window: WindowInfo) {
@@ -493,6 +510,7 @@ final class TitleManager: ObservableObject {
     }
 
     deinit {
-        timer?.invalidate()
+        titleTimer?.invalidate()
+        windowsTimer?.invalidate()
     }
 }
